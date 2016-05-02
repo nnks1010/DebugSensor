@@ -16,11 +16,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView direction;
     TextView tvgx, tvgy, tvgz;
     TextView tvax, tvay, tvaz;
+
+    private float[] fAccell = null;
+    private float[] fMagnetic = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        direction = (TextView) findViewById(R.id.TextView0);
+        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        direction = (TextView) findViewById(R.id.textView7);
         tvax = (TextView) findViewById(R.id.textView);
         tvay = (TextView) findViewById(R.id.textView2);
         tvaz = (TextView) findViewById(R.id.textView3);
@@ -32,15 +36,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-        List<Sensor> s1 = sm.getSensorList(Sensor.TYPE_ACCELEROMETER);
-        List<Sensor> s2 = sm.getSensorList(Sensor.TYPE_MAGNETIC_FIELD);
-        if (0 < s1.size()) {
-            sm.registerListener(this, s1.get(0), SensorManager.SENSOR_DELAY_NORMAL);
-        }
-        if (0 < s2.size()){
-            sm.registerListener(this, s2.get(0), SensorManager.SENSOR_DELAY_NORMAL);
-        }
+        sm.registerListener(this, sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
+        sm.registerListener(this, sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_UI);
     }
 
     @Override
@@ -53,8 +50,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     @Override
     public void onSensorChanged(SensorEvent event) {
-        float[] fAccell = null;
-        float[] fMagnetic = null;
         if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) return;
 
         switch (event.sensor.getType()) {
@@ -72,14 +67,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
         }
         if (fAccell != null && fMagnetic != null) {
-            // 回転行列を得る
             float[] inR = new float[9];
+             float[] outR = new float[9];
+             float[] fAttitude = new float[3];
+            // 回転行列を得る
             SensorManager.getRotationMatrix(inR, null, fAccell, fMagnetic);
-            // ワールド座標とデバイス座標のマッピングを変換する
-            float[] outR = new float[9];
             SensorManager.remapCoordinateSystem(inR, SensorManager.AXIS_X, SensorManager.AXIS_Y, outR);
-            //  姿勢を得る
-            float[] fAttitude = new float[3];
             SensorManager.getOrientation(outR, fAttitude);
             float angrad = fAttitude[0];
             int orientDegrees = (int) Math.floor(angrad >= 0 ? Math.toDegrees(angrad) : 360 + Math.toDegrees(angrad));
